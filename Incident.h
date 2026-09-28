@@ -8,7 +8,7 @@ using namespace std;
 class IncidentObserver;
 class IncidentState;
 
-classs Incident {
+class Incident {
 
     private:
 
@@ -38,7 +38,7 @@ classs Incident {
         string getLocation();
         int getSeverity();
 
-        ~Incident()
+        ~Incident();
 
 };
 
