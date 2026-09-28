@@ -1,9 +1,10 @@
 #ifndef INCIDENT_H
 #define INCIDENT_H
 
-using namespace std;
+
 #include <string>
 #include <vector>
+using namespace std;
 
 class IncidentObserver;
 class IncidentState;
@@ -28,15 +29,15 @@ class Incident {
         void notifyObservers();
 
         void setState(IncidentState* state);
-        string getState();
         void contain();
         void resolve();
         void dispatch();
 
-        string getID();
-        string getDescription();
-        string getLocation();
-        int getSeverity();
+        string getStateName() const;
+        string getId() const;
+        string getDescription() const;
+        string getLocation() const;
+        int getSeverity() const;
 
         ~Incident();
 
@@ -49,4 +50,4 @@ class Incident {
 
 
 
-#endif INCIDENT_H
+#endif

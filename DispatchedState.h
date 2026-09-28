@@ -34,4 +34,4 @@ class DispatchedState : public IncidentState
 
 
 
-#endif DISPATCHEDSTATE_H
+#endif

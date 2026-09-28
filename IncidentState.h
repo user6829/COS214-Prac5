@@ -9,15 +9,10 @@ class Incident;
 class IncidentState {
     public:
 
-
-        void dispatch(Incident* incident) = 0;
-        void resolve(Incident* incident) = 0;
-        void contain(Incident* incident) = 0;
-
-        string getName() const = 0;
-
-
-
+        virtual void dispatch(Incident* incident) = 0;
+        virtual void contain(Incident* incident) = 0;
+        virtual void resolve(Incident* incident) = 0;
+        virtual string getName() const = 0;
         virtual ~IncidentState() {}
 };
 
@@ -36,4 +31,4 @@ class IncidentState {
 
 
 
-#endif INCIDENTSTATE_H
+#endif

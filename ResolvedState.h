@@ -13,4 +13,4 @@ class ResolvedState : public IncidentState
         string getName() const;
 };
 
-#endif RESOLVEDSTATE_H
+#endif

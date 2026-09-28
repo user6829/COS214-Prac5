@@ -6,15 +6,10 @@
 #include "AlertService.h"
 #include "OperatorConsole.h"
 #include "Incident.h"
-#include "Severity.h"
+#include "IncidentObserver.h"
 #include <map>
 #include <string>
-
-class ResponseUnitManager;
-class AccessControlSubsystem;
-class AlertService;
-class OperatorConsole;
-class Incident;
+#include <vector>
 
 class EmergencyDesk {
 private:
@@ -23,11 +18,22 @@ private:
     AlertService& alertService;
     OperatorConsole& console;
     std::map<std::string, Incident*> incidents;
+    std::vector<IncidentObserver*> observers;
+    int nextId;
+
+    Incident* registerIncident(const std::string& description, const std::string& location, Severity level);
+    Incident* findIncident(const std::string& id);
 
 public:
     EmergencyDesk(ResponseUnitManager& res, AccessControlSubsystem& acc, AlertService& alert, OperatorConsole& opc);
-    void handleFireEmergency(const std::string& location, Severity level);
-    void handleMedicalEmergency(const std::string& location, Severity level);
+    ~EmergencyDesk();
+    EmergencyDesk(const EmergencyDesk&) = delete;
+    EmergencyDesk& operator=(const EmergencyDesk&) = delete;
+
+    void addObserver(IncidentObserver* observer);
+    std::string handleFireEmergency(const std::string& location, Severity level);
+    std::string handleMedicalEmergency(const std::string& location, Severity level);
+    void containIncident(const std::string& id);
     void resolveIncident(const std::string& id);
 };
 

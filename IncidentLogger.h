@@ -17,4 +17,4 @@ class IncidentLogger : public IncidentObserver {
 
 
 
-#endif INCIDENTLOGGER_H
+#endif
