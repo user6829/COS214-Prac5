@@ -22,4 +22,4 @@ class ReportedState : public IncidentState
 
 
 
-#endif REPORTEDSTATE_HSTATE_H
+#endif

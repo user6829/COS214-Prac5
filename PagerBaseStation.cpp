@@ -1,5 +1,5 @@
 #include "PagerBaseStation.h"
-#include "Incident.h"
+// #include "Incident.h"
 #include <iostream>
 
 int PagerBaseStation::transmitPage(int zoneCode, const std::string& text, int urgency) {

@@ -1,6 +1,13 @@
 #include "PagerNotifier.h"
 #include <iostream>
 
+PagerNotifier::PagerNotifier(PagerBaseStation* station) : base(station) {
+    buildingZones["Science Building"] = 101;
+    buildingZones["Library"] = 102;
+    buildingZones["Engineering Block"] = 103;
+    buildingZones["Student Centre"] = 104;
+}
+
 bool PagerNotifier::notifyBuilding(const std::string& msg, Severity level, const std::string& building) {
     if (!base) {
         return false;

@@ -9,4 +9,4 @@ class IncidentDashboard : public IncidentObserver {
 
 
 
-#endif INCIDENTDASHBOARD_H
+#endif

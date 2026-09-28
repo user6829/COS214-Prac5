@@ -19,4 +19,4 @@ class ContainedState : public IncidentState
 
 
 
-#endif CONTAINEDSTATE_H
+#endif

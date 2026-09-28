@@ -1,8 +1,6 @@
 #ifndef INCIDENTOBSERVER_H
 #define INCIDENTOBSERVER_H
 
-using namecpace std;
-#include <string>
 class Incident;
 
 
@@ -19,4 +17,4 @@ class IncidentObserver {
 
 
 
-#endif INCIDENTOBSERVER_H
+#endif

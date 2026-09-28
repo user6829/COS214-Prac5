@@ -1,4 +1,5 @@
 #include "AlertService.h"
+#include "EmergencyNotifier.h"
 #include "IncidentMediator.h"
 #include <iostream>
 
@@ -6,11 +7,13 @@ AlertService::AlertService(IncidentMediator* med, EmergencyNotifier* notif)
     : Colleague(med), notifier(notif) {}
 
 void AlertService::broadcastAlert(const std::string& message, const std::string& areaId, Severity level) {
-    std::cout << "[AlertService] Broadcast alert for " << areaId 
-              << " | Level: " << static_cast<int>(level) 
+    std::cout << "[AlertService] Broadcast alert for " << areaId
+              << " | Level: " << static_cast<int>(level)
               << " | Message: " << message << std::endl;
 
-    // TODO: Teammate can delegate to notifier (Adapter) here if notifier != nullptr
+    if (notifier && !notifier->notifyBuilding(message, level, areaId)) {
+        std::cout << "[AlertService] Warning: pager delivery failed for " << areaId << std::endl;
+    }
 
     if (mediator) {
         mediator->notify(this, Event::AlertBroadcast, areaId);

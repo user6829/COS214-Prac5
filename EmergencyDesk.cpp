@@ -1,39 +1,77 @@
 #include "EmergencyDesk.h"
-#include <string>
 #include <iostream>
-using namespace std;
 
 EmergencyDesk::EmergencyDesk(ResponseUnitManager& res, AccessControlSubsystem& acc, AlertService& alert, OperatorConsole& opc)
-    : responseUnits(res), accessControl(acc), alertService(alert), console(opc) {}
+    : responseUnits(res), accessControl(acc), alertService(alert), console(opc), nextId(1) {}
 
-void EmergencyDesk::handleFireEmergency(const std::string& location, Severity level) {
+EmergencyDesk::~EmergencyDesk() {
+    for (auto& entry : incidents) {
+        delete entry.second;
+    }
+}
+
+void EmergencyDesk::addObserver(IncidentObserver* observer) {
+    observers.push_back(observer);
+}
+
+//
+Incident* EmergencyDesk::registerIncident(const std::string& description, const std::string& location, Severity level) {
+    std::string id = "INC-" + std::to_string(nextId++);
+    Incident* incident = new Incident(id, description, location, static_cast<int>(level));
+    for (IncidentObserver* observer : observers) {
+        incident->attach(observer);
+    }
+    incidents[id] = incident;
+    incident->notifyObservers();
+    return incident;
+}
+
+Incident* EmergencyDesk::findIncident(const std::string& id) {
+    auto it = incidents.find(id);
+    if (it == incidents.end()) {
+        std::cout << "[EmergencyDesk] Rejected: incident " << id << " not found." << std::endl;
+        return nullptr;
+    }
+    return it->second;
+}
+
+//-------- facade
+std::string EmergencyDesk::handleFireEmergency(const std::string& location, Severity level) {
     std::cout << "[EmergencyDesk] Handling Fire Emergency at: " << location << std::endl;
-    
+
+    Incident* incident = registerIncident("Fire", location, level);
     console.showStatus("Fire Emergency reported at " + location);
     accessControl.lockArea(location);
     alertService.broadcastAlert("Fire Emergency! Evacuate immediately.", location, level);
     responseUnits.dispatch("Fire Response", location);
+    incident->dispatch();
+    return incident->getId();
 }
 
-void EmergencyDesk::handleMedicalEmergency(const std::string& location, Severity level) {
+std::string EmergencyDesk::handleMedicalEmergency(const std::string& location, Severity level) {
     std::cout << "[EmergencyDesk] Handling Medical Emergency at: " << location << std::endl;
-    
+
+    Incident* incident = registerIncident("Medical", location, level);
     console.showStatus("Medical Emergency reported at " + location);
     alertService.broadcastAlert("Medical Emergency in progress. Clear the area.", location, level);
     responseUnits.dispatch("Medical Response", location);
+    incident->dispatch();
+    return incident->getId();
+}
+
+//-------- lifecycle
+void EmergencyDesk::containIncident(const std::string& id) {
+    Incident* incident = findIncident(id);
+    if (incident) {
+        incident->contain();
+        console.showStatus("Incident " + id + " is now " + incident->getStateName());
+    }
 }
 
 void EmergencyDesk::resolveIncident(const std::string& id) {
-    std::cout << "[EmergencyDesk] Resolving Incident ID: " << id << std::endl;
-    
-    auto it = incidents.find(id);
-    if (it != incidents.end()) {
-        Incident* inc = it->second;
-        if (inc) {
-            inc->resolve();
-        }
-        console.showStatus("Incident " + id + " has been resolved.");
-    } else {
-        std::cout << "[EmergencyDesk] Incident ID " << id << " not found." << std::endl;
+    Incident* incident = findIncident(id);
+    if (incident) {
+        incident->resolve();
+        console.showStatus("Incident " + id + " is now " + incident->getStateName());
     }
 }
