@@ -1,6 +1,11 @@
 #ifndef EMERGENCYDESK_H
 #define EMERGENCYDESK_H
 
+#include "ResponseUnitManager.h"
+#include "AccessControlSubsystem.h"
+#include "AlertService.h"
+#include "OperatorConsole.h"
+#include "Incident.h"
 #include "Severity.h"
 #include <map>
 #include <string>
@@ -13,6 +18,10 @@ class Incident;
 
 class EmergencyDesk {
 private:
+    ResponseUnitManager& responseUnits;
+    AccessControlSubsystem& accessControl;
+    AlertService& alertService;
+    OperatorConsole& console;
     std::map<std::string, Incident*> incidents;
 
 public:

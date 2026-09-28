@@ -4,6 +4,7 @@
 #include "EmergencyNotifier.h"
 #include "PagerBaseStation.h"
 #include "Severity.h"
+#include "Incident.h"
 #include <map>
 #include <string>
 
