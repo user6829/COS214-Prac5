@@ -1,5 +1,5 @@
 #ifndef REPORTEDSTATE_H
-#define REPORTEDSTATE_HSTATE_H
+#define REPORTEDSTATE_H
 #include "IncidentState.h"
 
 class ReportedState : public IncidentState

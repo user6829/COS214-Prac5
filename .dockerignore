@@ -1,0 +1,8 @@
+.git
+*.pdf
+*.vpp
+*.vpd
+*.zip
+*.o
+campus_guard
+main

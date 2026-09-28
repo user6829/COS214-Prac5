@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  campus_guard:
+    build: .
+    container_name: campus_guard_demo
+    stdin_open: true
+    tty: true
