@@ -1,4 +1,3 @@
-//-------- main.cpp : CampusGuard end-to-end demonstration
 #include <iostream>
 #include <string>
 #include "CampusEmergencyMediator.h"
@@ -15,87 +14,121 @@
 
 using namespace std;
 
-static void heading(const string& title)
-{
-    cout << "\n-------- " << title << " --------" << endl;
+//-------- network of collaborators --------
+struct CampusNetwork {
+	CampusEmergencyMediator mediator;
+	AccessControlSubsystem accessControl;
+	ResponseUnitManager responseUnits;
+	PagerBaseStation pagerStation;// Adaptee aka legacy
+	PagerNotifier pager;   // adapter
+	AlertService alertService;
+	OperatorConsole console; // command invoker
+	EmergencyDesk desk; // facade
+	IncidentDashboard dashboard;
+	IncidentLogger logger;
+
+	CampusNetwork()
+		: accessControl(&mediator),
+		  responseUnits(&mediator),
+		  pager(&pagerStation),
+		  alertService(&mediator, &pager),
+		  console(&mediator),
+		  desk(responseUnits, accessControl, alertService, console)
+	{
+		mediator.setAccessControl(&accessControl);
+		mediator.setResponseUnitManager(&responseUnits);
+		mediator.setAlertService(&alertService);
+
+		desk.addObserver(&dashboard);
+		desk.addObserver(&logger);
+	}
+};
+
+//----------------------------------display helpers---------------------------------------------
+void heading(const string& title) {
+	cout << "\n-------- " << title << " --------" << endl;
 }
 
-static void showLock(const AccessControlSubsystem& access, const string& area)
-{
-    cout << "[Main] " << area << " locked? " << (access.isLocked(area) ? "yes" : "no") << endl;
+void showLock(const AccessControlSubsystem& access, const string& area) {
+	cout << "[Main] " << area << " locked? " << (access.isLocked(area) ? "yes" : "no") << endl;
 }
 
-int main()
-{
-    //-------- Wiring (Mediator colleagues, Adapter, Facade, Observers)
-    CampusEmergencyMediator mediator;
-    AccessControlSubsystem accessControl(&mediator);
-    ResponseUnitManager responseUnits(&mediator);
+//-------- section 1: fire emergency, FULL 6 PATTERNS --------
+string FireEmergency(CampusNetwork& net) {
+	heading("1. Facade + Mediator + Adapter + State + Observer: Fire reported");
+	string fireId = net.desk.handleFireEmergency("Science Building", Severity::Critical);
 
-    PagerBaseStation pagerStation;          // Adaptee (legacy)
-    PagerNotifier pager(&pagerStation);     // Adapter
-    AlertService alertService(&mediator, &pager);
+	heading("2. Command + Mediator: operator reinforces the response");
+	net.console.setAndExecuteCommand(new DispatchUnitCommand(&net.responseUnits, "Security Patrol", "Science Building"));
+	net.console.setAndExecuteCommand(new EvacuateAreaCommand(&net.alertService, "Science Building", Severity::Critical));
 
-    mediator.setAccessControl(&accessControl);
-    mediator.setResponseUnitManager(&responseUnits);
-    mediator.setAlertService(&alertService);
+	heading("3. State + Observer: fire contained");
+	net.desk.containIncident(fireId);
 
-    OperatorConsole console(&mediator);     // Command invoker
-    EmergencyDesk desk(responseUnits, accessControl, alertService, console);   // Facade
+	heading("4. Command undo: operator cancels evacuation order");
+	net.console.undoLastCommand();
 
-    IncidentDashboard dashboard;
-    IncidentLogger logger;
-    desk.addObserver(&dashboard);
-    desk.addObserver(&logger);
+	heading("5. State + Observer: fire resolved");
+	net.desk.resolveIncident(fireId);
 
-    //-------- Scenario 1: Fire in the Science Building
-    heading("Scenario 1a: Facade + Mediator + Adapter + State + Observer");
-    string fireId = desk.handleFireEmergency("Science Building", Severity::Critical);
+	return fireId;
+}
 
-    heading("Scenario 1b: Command + Mediator (operator reinforces the response)");
-    console.setAndExecuteCommand(new DispatchUnitCommand(&responseUnits, "Security Patrol", "Science Building"));
-    console.setAndExecuteCommand(new EvacuateAreaCommand(&alertService, "Science Building", Severity::Critical));
+//-------- section 2: medical emergency and access breach --------
+string MedicalEmergencyAndBreach(CampusNetwork& net) {
+	heading("6. Facade: medical emergency, different runtime data");
+	string medId = net.desk.handleMedicalEmergency("Library", Severity::High);
 
-    heading("Scenario 1c: State + Observer (fire contained)");
-    desk.containIncident(fireId);
+	heading("7. Command + Mediator + Adapter: operator locks down Library");
+	net.console.setAndExecuteCommand(new LockdownAreaCommand(&net.accessControl, "Library"));
+	showLock(net.accessControl, "Library");
 
-    heading("Scenario 1d: Command undo (operator cancels evacuation order)");
-    console.undoLastCommand();
+	heading("8. Mediator: door sensor reports a breach");
+	net.accessControl.onBreachDetected("Library");
 
-    heading("Scenario 1e: State + Observer (fire resolved)");
-    desk.resolveIncident(fireId);
+	heading("9. Mediator: casualty reported, medics sent, doors reopened");
+	net.responseUnits.onCasualtyReported("Library");
+	showLock(net.accessControl, "Library");
 
-    //-------- Scenario 2: Medical emergency and breach at the Library
-    heading("Scenario 2a: Facade (medical emergency, different runtime data)");
-    string medId = desk.handleMedicalEmergency("Library", Severity::High);
+	return medId;
+}
 
-    heading("Scenario 2b: Command + Mediator + Adapter (operator locks down Library)");
-    console.setAndExecuteCommand(new LockdownAreaCommand(&accessControl, "Library"));
-    showLock(accessControl, "Library");
+//-------- section 3: invalid operations ---------------------------------
+void InvalidOperations(CampusNetwork& net, const string& medId) {
+	heading("10. State failure cases: invalid operations are rejected, not ignored");
+	net.desk.resolveIncident(medId);    // rejected, not yet contained
+	net.desk.resolveIncident("INC-99");     // rejected, unknown incident
+	net.desk.containIncident(medId);
+	net.desk.resolveIncident(medId);
+	net.desk.containIncident(medId);    // rejected, already resolved
+}
 
-    heading("Scenario 2c: Mediator (door sensor reports a breach)");
-    accessControl.onBreachDetected("Library");
+//-------- section 4: command undo history, including an empty history --------
+void EndOfShiftRollback(CampusNetwork& net) {
+	heading("11. Command undo: end-of-shift rollback, then empty history");
+	net.console.undoLastCommand();          // lockdown
+	net.console.undoLastCommand();          // dispatch security patrol
+	net.console.undoLastCommand();          // history now empty
+}
 
-    heading("Scenario 2d: Mediator (casualty reported: medics sent, doors reopened)");
-    responseUnits.onCasualtyReported("Library");
-    showLock(accessControl, "Library");
+//-------- section 5: final observer and console records --------
+void FinalRecords(CampusNetwork& net) {
+	heading("12. Observer + Console records");
+	net.logger.printHistory();
+	net.console.printLog();
+}
 
-    heading("Scenario 2e: State failure cases (invalid operations are reported)");
-    desk.resolveIncident(medId);        // rejected: not yet contained
-    desk.resolveIncident("INC-99");     // rejected: unknown incident
-    desk.containIncident(medId);
-    desk.resolveIncident(medId);
-    desk.containIncident(medId);        // rejected: already resolved
+int main() {
+	cout << "=====~~~~~~~~~~~~~~~~~~~~~ CampusGuard: Emergency Response Coordination ~~~~~~~~=====" << endl;
 
-    heading("Scenario 2f: Command undo (end of shift rollback, then empty history)");
-    console.undoLastCommand();          // lockdown
-    console.undoLastCommand();          // dispatch security patrol
-    console.undoLastCommand();          // nothing left
+	CampusNetwork net;
 
-    //-------- Final records
-    heading("Observer + Console records");
-    logger.printHistory();
-    console.printLog();
+	string fireId = FireEmergency(net);
+	string medId = MedicalEmergencyAndBreach(net);
+	InvalidOperations(net, medId);
+	EndOfShiftRollback(net);
+	FinalRecords(net);
 
-    return 0;
+	cout << "\n===== Done =====" << endl;
+	return 0;
 }
